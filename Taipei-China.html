@@ -218,12 +218,19 @@
 		<script>
 		  let mapInstance = null;
 		  let activeConnections = 0;
+		  let allConnections = [];
 		  let isZoomedIn = false;
 		  let currentZoomedCity = null;
 		  let originalView = { center: [27.5, 115], zoom: 5 };
 		  let cityMarkers = [];
 		  let taipeiMarker = null;
-		  
+		  function clearAllConnections() {
+			allConnections.forEach(layer => {
+			  mapInstance.removeLayer(layer);
+			});
+			allConnections = [];
+		  }
+
 		  function updateStatus(status) {
 			document.getElementById('connection-status').textContent = status;
 		  }
@@ -488,13 +495,15 @@
 				  weight: lineWeight,
 				  opacity: lineOpacity
 				}).addTo(mapInstance);
-				
+				allConnections.push(connectionAtoB);
+
 				const connectionBtoA = L.polyline([], {
 				  color: isTaipeiStart ? '#ff3333' : '#00ffff',
 				  weight: lineWeight,
 				  opacity: lineOpacity
 				}).addTo(mapInstance);
-	  
+				allConnections.push(connectionBtoA);
+				
 				// 數據流動線條 - 放大時增強顯示
 				const dataFlowAtoB = L.polyline([], {
 				  color: isTaipeiStart ? '#00ff88' : '#ff6666',
@@ -502,6 +511,7 @@
 				  opacity: isZoomedIn ? 0.8 : 0.6,
 				  dashArray: isZoomedIn ? '6, 16' : '4, 12'
 				}).addTo(mapInstance);
+				allConnections.push(dataFlowAtoB);
 				
 				const dataFlowBtoA = L.polyline([], {
 				  color: isTaipeiStart ? '#ff6666' : '#00ff88',
@@ -509,6 +519,7 @@
 				  opacity: isZoomedIn ? 0.8 : 0.6,
 				  dashArray: isZoomedIn ? '6, 16' : '4, 12'
 				}).addTo(mapInstance);
+				allConnections.push(dataFlowBtoA);
 	  
 				// 方向性連線建立動畫
 				let progressAtoB = 0;
@@ -588,8 +599,8 @@
 					}
 				  }, 100);
 				  
-				  // 隨機持續時間 (4-8秒)
-				  const duration = 4000 + Math.random() * 4000;
+				  // 持續時間 (1秒)
+				  const duration = 1000;
 				  setTimeout(() => {
 					clearInterval(flowAnimation);
 					activeConnections--;
@@ -665,20 +676,12 @@
 				setTimeout(() => {
 				  updateStatus('VPN系統啟動');
 				  updateZoomMode('');
-				  
-				  // 立即建立第一個連線
-				  establishTaipeiConnection();
-				  
-				  // 定期建立台北連線 (每4秒)
-				  setInterval(establishTaipeiConnection, 4000);
-				  
-				  // 隨機額外台北連線
+				  // 定期建立台北連線 (每2秒)
 				  setInterval(() => {
-					if (Math.random() > 0.5) {
-					  establishTaipeiConnection();
-					}
-				  }, 6000);
-				  
+					cities.forEach(city => {
+					  createBidirectionalVPNConnection([25.033, 121.565], city.coords, '台北', city.name);
+					});
+				  }, 2000);				  
 				}, 1000);
 			  });
 	  
